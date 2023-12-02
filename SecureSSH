@@ -1,0 +1,151 @@
+###
+Securing Users
+###
+
+- Start by creating a User with escalated privalages to bind from
+
+    Sudo useradd {Username}
+
+
+- You'll need to add this user to a group with privalages. 
+
+    on ubuntu:
+
+    usermod -aG sudo {Username}
+
+    on centos:
+
+    usermod -aG wheel {Username}
+
+
+- Change the password for that user
+
+    sudo passwd {Username}
+
+
+- Change to that user
+
+    sudo su {Username}
+
+- it will prompt for a password
+
+
+- you can delete users by checking for some running patchwork to check for users on the system with logged credential hashes by running the following:
+
+    sudo deluser {Username}
+
+
+###
+STOPPING SSH
+###
+
+- STOPPING THE SERVICE -
+
+- all in all it may be best to just disable ssh. to do this run the following:
+
+- check the status of the service:
+
+    sudo systemctl status sshd
+
+- You can check the status of ports by running:
+
+    nmap 127.0.0.1
+
+- If ssh is active run the following to disable and stop the service
+
+    sudo systemctl disable sshd
+
+    sudo systemctl stop sshd
+
+###
+
+- if we can't stop the service then we can harden by deleting common users like root or admin making any attacker have to guess usernames.
+
+- keep the passwords strong and uncrackable in a short time with tools like hydra is important. There should be an attach password generator in the repo. 
+
+    ./generatePassword 
+
+should run the script
+
+###
+SECURING SSH
+###
+
+- Backup the config file in case we screw up
+
+    cp /etc/ssh/sshd_config ~/sshd_config_original
+
+
+- modify the /etc/ssh/sshd_config to not permit empty passwords
+
+    PermitEmptyPasswords yes -> PermitEmptyPasswords no
+
+
+- in the same config file uncomment and modify root login permisions
+
+    PermitRootLogin no
+
+
+- if you want to whitelist specific users, place the following in the config file
+
+    AllowUsers user1
+
+
+- Change the port
+
+    port 2435
+
+but rememeber when connecting to specify the port number with -p #
+
+
+- Manage idle ssh sessions
+
+    ClientAliveInterval 60
+    ClientAliveCountMax 3
+
+this means that the server will check if commands are entered every 60 seconds and do so for 3 times before shutting the session
+
+===
+- AUTHORIZE EVERYTHING WITH KEYS AND DITCH THE PASSWORDS
+===
+https://www.digitalocean.com/community/tutorials/how-to-configure-ssh-key-based-authentication-on-a-linux-server
+
+- generate a keypair
+
+    ssh-keygen
+
+created keys are stored in ~/.ssh
+
+- send key to server and make sure you have access with passwords
+
+    ssh-copy-id username@remote_host
+
+type yes to accept the handshake and hit enter
+
+- the server will request a password for the account one time to authenticate the key and if the password is correct your key will be added to accepted keys
+
+- after setting up the keys, for a secure user account only allow key authentication by editing your /etc/ssh/sshd_config to the following:
+
+    PasswordAuthentication no
+    PublicKeyAuthentication yes
+
+
+- SSH should be mostly secure
+
+
+- To check all active SSH sessions type the following
+
+    who -a
+
+corresponding ssh sessions should be accompanied by an IP address in paraenthesis but not always.
+
+    USER       SHELL        TIMESTAMP                   PID
+    test     + pts/2        2023-12-02 03:45   .        103554 (192.168.1.2)
+            pts/0        2023-12-02 03:31             95008 id=ts/0  term=0 exit=1
+
+- kill these processes just type 
+
+    sudo kill <ssh-pid>
+
+this will exit the user and close their session forcing them to log in and potentially give you time to delete the user
+

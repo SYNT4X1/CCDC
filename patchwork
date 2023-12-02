@@ -20,9 +20,7 @@ DEFAULT='\033[0m' # No Color
 # CODE
 # ===
 
-
-
-function SecureUser(){
+function GenerateSecureUser(){
 
     echo "A new secure user will need to be created. Please make one."
     read -p "Username: " username
@@ -84,8 +82,6 @@ function UserCheck(){
     done
 }
 
-
-
 # main function to act as a call stack
 function Main(){
 
@@ -95,7 +91,7 @@ function Main(){
     fi
 
     # call stack
-    SecureUser
+    # GenerateSecureUser
     UserCheck
 
 }
