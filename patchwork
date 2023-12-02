@@ -1,0 +1,103 @@
+#!/bin/bash
+
+# ===
+# COLORS
+# ===
+
+# ANSI Escape code format (https://en.wikipedia.org/wiki/ANSI_escape_code)
+
+# COLOR =  = '\033[#;##m' 
+
+RED='\033[38:5:9m'
+YELLOW='\033[38:5:11m'
+GREEN='\033[38:5:10m'
+WHITE='\033[97m'
+BLUE='\033[36m'
+
+DEFAULT='\033[0m' # No Color
+
+# ===
+# CODE
+# ===
+
+
+
+function SecureUser(){
+
+    echo "A new secure user will need to be created. Please make one."
+    read -p "Username: " username
+    sleep 1
+    echo "please create a password for the user."
+    useradd $username
+    passwd $username 
+    usermod -aG wheel $username
+    if id -nG "$username" | grep -qw "wheel"; then
+        echo "Elevated user $username created"
+    else
+        echo $"User $username created but is not privalaged"
+    fi
+
+}
+
+function UserCheck(){
+
+    # hashmap of common passwords on the systems
+    declare -A password_hashes
+
+    # fun arrays
+    declare -a user_names_array
+    declare -a user_logon_status_array
+
+    # things to iterate
+    user_names=$(awk -F: '{print $1}' /etc/shadow)
+    user_logon_status=$(awk -F: '{print$2}' /etc/shadow)
+
+    # filling of arrays
+    for user in $user_names; do
+        user_names_array+=($user)
+    done
+
+    for user_status in $user_logon_status; do
+        user_logon_status_array+=($user_status)
+    done
+
+    # ===
+    # actual checks
+    # ===
+
+    # checking for passwords and active users that can access the system
+    index_length=${#user_names_array[*]}
+
+    printf "${BLUE}=== \n Avaible Users \n===\n"
+
+    for (( index=0; index<$index_length; index++)); do
+
+        status="${user_logon_status_array[$index]}"
+
+        if [[ "$status" != "!*" ]]; then
+            if [[ "$status" == "!" ]]; then
+                printf "${YELLOW}[WARNING] ${DEFAULT}${user_names_array[$index]} is a user with no set password. This is changable with root access.\n"
+            else
+                printf "${RED}[VITAL] ${DEFAULT}${user_names_array[$index]} is a user with a set password\n"
+            fi
+        fi
+    done
+}
+
+
+
+# main function to act as a call stack
+function Main(){
+
+    if [ "$EUID" -ne 0 ]; then 
+        echo "Please run as root"
+        exit
+    fi
+
+    # call stack
+    SecureUser
+    UserCheck
+
+}
+
+Main  # leave this alone if you want to program to execute
